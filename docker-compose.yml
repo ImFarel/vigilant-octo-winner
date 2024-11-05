@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: chat-app-core
+        container_name: chat-app-api
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - .:/var/www
+            - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+        networks:
+            - app-network
+
+    db:
+        image: mysql:8.0
+        container_name: chat-app-db
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: chat-app
+            MYSQL_PASSWORD: root
+        volumes:
+            - dbdata:/var/lib/mysql
+        networks:
+            - app-network
+
+    websockets:
+        image: chat-app-core
+        container_name: chat-app-reverb
+        command: php artisan reverb:start
+        networks:
+            - app-network
+        depends_on:
+            - app
+
+networks:
+    app-network:
+        driver: bridge
+
+volumes:
+    dbdata:
+        driver: local

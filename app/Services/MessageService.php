@@ -27,7 +27,7 @@ class MessageService
 
             $data['user_id'] = $user->id;
             $data['chatroom_id'] = $chatroom->id;
-            $data['attachments'] = json_encode($attachmentPaths);
+            $data['attachments'] = $attachmentPaths;
 
             DB::commit();
 

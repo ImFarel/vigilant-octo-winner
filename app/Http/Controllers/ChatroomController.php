@@ -5,10 +5,19 @@ namespace App\Http\Controllers;
 use App\Http\Resources\BaseResourceCollection;
 use App\Http\Resources\ChatroomResource;
 use App\Models\Chatroom;
+use App\Services\ChatroomService;
 use Illuminate\Http\Request;
 
 class ChatroomController extends Controller
 {
+
+    protected $chatroomService;
+
+    public function __construct(ChatroomService $chatroomService)
+    {
+        $this->chatroomService = $chatroomService;
+    }
+
     /**
      * @OA\Post(
      *     path="/api/chatrooms",
@@ -33,12 +42,13 @@ class ChatroomController extends Controller
             'max_members' => 'required|integer|min:1',
         ]);
 
-        $chatroom = Chatroom::create([
-            'name' => $request->name,
-            'max_members' => $request->max_members,
-        ]);
 
-        return new ChatroomResource($chatroom);
+        try {
+            $chatroom = $this->chatroomService->createChatroom($request->all());
+            return new ChatroomResource($chatroom);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to create chatroom', 'error' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -106,19 +116,9 @@ class ChatroomController extends Controller
     public function enter(Chatroom $chatroom)
     {
         $user = auth()->user();
-        // Check if the user is already in the chatroom
-        if ($chatroom->users()->where('user_id', $user->id)->exists()) {
-            return response()->json(['message' => 'User already in the chatroom', 'success' => false], 400);
-        }
+        $result = $this->chatroomService->enterChatroom($chatroom, $user);
 
-        // Check if the chatroom has reached its maximum member limit
-        if ($chatroom->users()->count() >= $chatroom->max_members) {
-            return response()->json(['message' => 'Chatroom is full', 'success' => false], 403);
-        }
-
-        $chatroom->users()->attach($user->id);
-
-        return response()->json(['message' => 'Entered chatroom', 'success' => true]);
+        return response()->json($result, $result['success'] ? 200 : 400);
     }
 
     /**
@@ -139,14 +139,8 @@ class ChatroomController extends Controller
     public function leave(Chatroom $chatroom)
     {
         $user = auth()->user();
+        $result = $this->chatroomService->leaveChatroom($chatroom, $user);
 
-        // Check if the user is a member of the chatroom
-        if (!$chatroom->users()->where('user_id', $user->id)->exists()) {
-            return response()->json(['message' => 'User is not a member of the chatroom', 'success' => false], 400);
-        }
-
-        $chatroom->users()->detach($user->id);
-
-        return response()->json(['message' => 'Left chatroom', 'success' => true]);
+        return response()->json($result, $result['success'] ? 200 : 400);
     }
 }

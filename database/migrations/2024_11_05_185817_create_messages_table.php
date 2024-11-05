@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('chatroom_id')->constrained()->onDelete('cascade');
             $table->text('message')->nullable();
-            $table->string('attachment')->nullable();
+            $table->string('attachments')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

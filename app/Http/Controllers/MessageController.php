@@ -3,11 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\BaseResourceCollection;
+use App\Http\Resources\MessageResource;
 use App\Models\Chatroom;
+use App\Services\MessageService;
+use DB;
 use Illuminate\Http\Request;
 
 class MessageController extends Controller
 {
+    protected $messageService;
+
+    public function __construct(MessageService $messageService)
+    {
+        $this->messageService = $messageService;
+    }
+
     /**
      * @OA\Post(
      *     path="/api/chatrooms/{chatroom}/messages",
@@ -24,7 +34,7 @@ class MessageController extends Controller
      *         required=true,
      *         @OA\JsonContent(
      *             @OA\Property(property="message", type="string", example="Hello, world!"),
-     *             @OA\Property(property="attachment", type="string", format="binary")
+     *             @OA\Property(property="attachments", type="array", @OA\Items(type="string", format="binary"))
      *         )
      *     ),
      *     @OA\Response(
@@ -48,24 +58,21 @@ class MessageController extends Controller
     public function store(Request $request, Chatroom $chatroom)
     {
         $request->validate([
-            'message' => 'required_without:attachment|string',
-            'attachment' => 'nullable|file',
+            'message' => 'required_without:attachments|string',
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'nullable|file',
+        ], [
+            'attachments.max' => 'You can upload a maximum of 5 attachments.',
         ]);
 
         $user = auth()->user();
-        $attachmentPath = null;
 
-        if ($request->hasFile('attachment')) {
-            $attachmentPath = $request->file('attachment')->store('attachments', 'public');
+        try {
+            $message = $this->messageService->storeMessage($request->all(), $chatroom, $user);
+            return new MessageResource($message);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to send message', 'error' => $e->getMessage()], 500);
         }
-
-        $message = $chatroom->messages()->create([
-            'user_id' => $user->id,
-            'message' => $request->message,
-            'attachment' => $attachmentPath,
-        ]);
-
-        return response()->json(['message' => 'Message sent', 'data' => $message]);
     }
 
     /**
@@ -113,15 +120,8 @@ class MessageController extends Controller
         $perPage = $request->query('per_page', 10);
         $search = $request->query('search');
 
-        $query = $chatroom->messages()->with('user')->orderBy('created_at', 'desc');
-        ;
+        $messages = $this->messageService->getMessages($chatroom, $perPage, $search);
 
-        if ($search) {
-            $query->where('message', 'like', "%$search$");
-        }
-
-        $messages = $query->cursorPaginate($perPage);
-
-        return new BaseResourceCollection($messages, 'Message retrieved successfully');
+        return new BaseResourceCollection($messages, 'Messages retrieved successfully');
     }
 }

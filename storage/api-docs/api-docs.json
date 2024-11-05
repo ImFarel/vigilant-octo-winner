@@ -386,9 +386,12 @@
                                         "type": "string",
                                         "example": "Hello, world!"
                                     },
-                                    "attachment": {
-                                        "type": "string",
-                                        "format": "binary"
+                                    "attachments": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
                                     }
                                 },
                                 "type": "object"

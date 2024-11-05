@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\MessageSent;
 use App\Http\Resources\BaseResourceCollection;
 use App\Http\Resources\MessageResource;
 use App\Models\Chatroom;
@@ -69,6 +70,7 @@ class MessageController extends Controller
 
         try {
             $message = $this->messageService->storeMessage($request->all(), $chatroom, $user);
+            broadcast(new MessageSent($message))->toOthers();
             return new MessageResource($message);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to send message', 'error' => $e->getMessage()], 500);

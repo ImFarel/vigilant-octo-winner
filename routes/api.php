@@ -6,7 +6,6 @@ use App\Http\Controllers\MessageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-
 Route::get('/test', function () {
     return response()->json(['message' => 'Hello World!']);
 });
@@ -14,7 +13,7 @@ Route::get('/test', function () {
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'api'])->group(function () {
     Route::post('/chatrooms', [ChatroomController::class, 'store']);
     Route::get('/chatrooms', [ChatroomController::class, 'index']);
     Route::post('/chatrooms/{chatroom}/enter', [ChatroomController::class, 'enter']);

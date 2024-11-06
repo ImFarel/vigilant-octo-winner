@@ -10,7 +10,7 @@ class MessageRepository
         return Message::create($data);
     }
 
-    public function getAll($chatroom, $perPage, $search)
+    public function getAll($chatroom, $perPage, $search, $cursor)
     {
         $query = $chatroom->messages()->with('user')->orderBy('created_at', 'desc');
 
@@ -18,6 +18,6 @@ class MessageRepository
             $query->where('message', 'like', '%' . $search . '%');
         }
 
-        return $query->cursorPaginate($perPage);
+        return $query->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
     }
 }

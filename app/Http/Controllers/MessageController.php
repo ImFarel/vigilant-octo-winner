@@ -31,6 +31,27 @@ class MessageController extends Controller
      *         required=true,
      *         @OA\Schema(type="integer")
      *     ),
+     *     @OA\Parameter(
+     *         name="per_page",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="integer", default=10),
+     *         description="Number of messages per page"
+     *     ),
+     *     @OA\Parameter(
+     *         name="cursor",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="string"),
+     *         description="Cursor for pagination"
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="string"),
+     *         description="Search term for messages"
+     *     ),
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -70,7 +91,7 @@ class MessageController extends Controller
 
         try {
             $message = $this->messageService->storeMessage($request->all(), $chatroom, $user);
-            broadcast(new MessageSent($message))->toOthers();
+            broadcast(new MessageSent($message));
             return new MessageResource($message);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to send message', 'error' => $e->getMessage()], 500);
@@ -120,9 +141,10 @@ class MessageController extends Controller
     public function index(Request $request, Chatroom $chatroom)
     {
         $perPage = $request->query('per_page', 10);
+        $cursor = $request->query('cursor');
         $search = $request->query('search');
 
-        $messages = $this->messageService->getMessages($chatroom, $perPage, $search);
+        $messages = $this->messageService->getMessages($chatroom, $perPage, $search, $cursor);
 
         return new BaseResourceCollection($messages, 'Messages retrieved successfully');
     }

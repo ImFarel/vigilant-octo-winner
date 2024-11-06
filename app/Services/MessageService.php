@@ -38,8 +38,8 @@ class MessageService
         }
     }
 
-    public function getMessages($chatroom, $perPage, $search)
+    public function getMessages($chatroom, $perPage, $search, $cursor)
     {
-        return $this->messageRepository->getAll($chatroom, $perPage, $search);
+        return $this->messageRepository->getAll($chatroom, $perPage, $search, $cursor);
     }
 }

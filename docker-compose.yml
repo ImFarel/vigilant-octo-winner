@@ -1,24 +1,66 @@
 version: '3.8'
 
 services:
-    app:
+
+    nginx:
+        image: nginx:alpine
+        restart: unless-stopped
+        ports:
+            - "80:80"
+        volumes:
+            - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+            - .:/var/www
+        networks:
+            - app-network
+        depends_on:
+            - api
+            - websockets
+
+    api:
         build:
             context: .
             dockerfile: Dockerfile
         image: chat-app-core
-        container_name: chat-app-api
         restart: unless-stopped
         working_dir: /var/www
+        ports:
+            - 9000:9000
         volumes:
             - .:/var/www
             - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
         networks:
             - app-network
+        environment:
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_DATABASE=chat-app
+            - DB_USERNAME=root
+            - DB_PASSWORD=root
+            - REVERB_HOST=websockets
+            - REVERB_PORT=8080
+
+    websockets:
+        image: chat-app-core
+        command: php artisan reverb:start
+        environment:
+            - DB_HOST=db
+            - DB_PORT=3306
+            - DB_DATABASE=chat-app
+            - DB_USERNAME=root
+            - DB_PASSWORD=root
+        ports:
+            - 8080:8080
+        networks:
+            - app-network
+        depends_on:
+            - api
 
     db:
         image: mysql:8.0
         container_name: chat-app-db
         restart: unless-stopped
+        ports:
+            - 3307:3306
         environment:
             MYSQL_ROOT_PASSWORD: root
             MYSQL_DATABASE: chat-app
@@ -27,15 +69,6 @@ services:
             - dbdata:/var/lib/mysql
         networks:
             - app-network
-
-    websockets:
-        image: chat-app-core
-        container_name: chat-app-reverb
-        command: php artisan reverb:start
-        networks:
-            - app-network
-        depends_on:
-            - app
 
 networks:
     app-network:
